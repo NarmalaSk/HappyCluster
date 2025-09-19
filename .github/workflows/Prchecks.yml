@@ -4,9 +4,8 @@ on:
   pull_request:
 
 jobs:
-  build:
+  test-helloworld:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,4 +15,8 @@ jobs:
         with:
           python-version: '3.11'
 
- 
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run tests
+        run: pytest
