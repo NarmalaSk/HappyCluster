@@ -1,8 +1,9 @@
 name: Pull Request Checks
 
 on:
- branch:
-    [ main ]
+ push:
+   branches:
+       [ main ]
 
 
 jobs:
