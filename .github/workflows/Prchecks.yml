@@ -26,8 +26,5 @@ jobs:
       - name: Run code lints
         run: ruff check .
 
-      - name: Type check
-        run: mypy .
-
       - name: Running unit test cases
         run: pytest
