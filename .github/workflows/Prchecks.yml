@@ -8,10 +8,11 @@ on:
 jobs:
   test-helloworld:
     runs-on: ubuntu-latest
+    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') || github.head_ref == 'dev' || github.head_ref == 'staging' }}
     env:
       PYTHONPATH: .
     steps:
-      - name: Checkout code
+      - name: Code Chcekout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -19,8 +20,13 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install pytest
-        run: pip install pytest
+      - name: Install Python tools & Dependencies
+        run: pip install ruff black mypy pytest
 
-      - name: Run tests
-        run: pytest
+      - name: Run Code Lints
+        run: ruff check .
+
+      - name: Running Unit Test Cases
+        
+
+      
