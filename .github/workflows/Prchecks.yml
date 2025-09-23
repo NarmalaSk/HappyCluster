@@ -8,6 +8,7 @@ on:
 jobs:
   test-helloworld:
     runs-on: ubuntu-latest
+    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') || github.head_ref == 'dev' || github.head_ref == 'staging' }}
     env:
       PYTHONPATH: .
     steps:
