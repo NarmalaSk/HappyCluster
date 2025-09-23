@@ -11,7 +11,7 @@ jobs:
     env:
       PYTHONPATH: .
     steps:
-      - name: Code Chcekout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -19,13 +19,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python tools & Dependencies
+      - name: Install Python tools & dependencies
         run: pip install ruff black mypy pytest
 
-      - name: Run Code Lints
+      - name: Run code lints
         run: ruff check .
 
-      - name: Running Unit Test Cases
-        
+      - name: Check code formatting
+        run: black --check .
 
-      
+      - name: Type check
+        run: mypy .
+
+      - name: Running unit test cases
+        run: pytest
