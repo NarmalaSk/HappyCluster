@@ -1,14 +1,15 @@
 name: Pull Request Checks
 
 on:
- push:
-   branches:
-       [ main ]
-
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test-helloworld:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,6 +23,4 @@ jobs:
         run: pip install pytest
 
       - name: Run tests
-        run: |
-              PYTHONPATH=. pytest
-              pytest Test_Hello.py
+        run: pytest
