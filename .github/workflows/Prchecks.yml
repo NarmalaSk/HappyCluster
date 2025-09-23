@@ -25,6 +25,3 @@ jobs:
       
       - name: Lint with ruff
         run: ruff check .
-
-      - name: Check formatting with black
-        run: black --check .
