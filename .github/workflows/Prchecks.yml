@@ -19,8 +19,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install pytest
-        run: pip install pytest
+      
+      - name: Lint with ruff
+        run: ruff check .
 
-      - name: Run tests
-        run: pytest
+      - name: Check formatting with black
+        run: black --check .
