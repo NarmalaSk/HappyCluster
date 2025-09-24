@@ -1,0 +1,31 @@
+name: Publish to DEV Environment
+
+on:
+  push:
+    branches:
+      - Develop
+  workflow_dispatch:
+  
+env:
+  DOCKER_REGISTRY: ${{ secrets.ACR_REGISTRY }}
+  IMAGE_NAME: ${{ secrets.USR_Image }}
+  APP_NAME: Sampleapp
+
+
+jobs:
+  build-and-publish:
+    name: Build and Push SNAPSHOT-1.0 docker Image
+    if: >
+       ( github.event_name == 'push' && github.ref == 'ref/heads/develop' ) ||
+       ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop' )
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+
+       
+  
+
+
