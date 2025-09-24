@@ -1,0 +1,33 @@
+name: Python workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-helloworld:
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') || github.head_ref == 'dev' || github.head_ref == 'staging' }}
+    env:
+      PYTHONPATH: .
+    defaults:
+      run:
+        working-directory: Go
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v6.0.0
+
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      - name: Run code lints
+        run: golangci-lint run ./...
+
+      - name: Running unit test cases
+        run: go test -v ./...
