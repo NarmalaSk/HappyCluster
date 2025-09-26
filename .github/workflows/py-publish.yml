@@ -16,8 +16,8 @@ jobs:
   build-and-publish:
     name: Build and Push SNAPSHOT-1.0 docker Image
     if: >
-       ( github.event_name == 'push' && github.ref == 'ref/heads/main' ) ||
-       ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/main' )
+         ( github.event_name == 'push' && github.ref == 'refs/heads/main' ) ||
+         ( github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' )
 
     runs-on: ubuntu-latest
     steps:
