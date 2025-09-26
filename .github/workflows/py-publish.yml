@@ -23,9 +23,31 @@ jobs:
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
 
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
 
-       
+      - name: Run Lints and Code formatting
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check .
+          src: .
+      
+      - name: Build and Compile Code
+        run: python -m compileall .
+
+      - name: Running unit test cases
+        run: python -m unittest 
+
+        
+      - name: Build Python package
+        run: python -m build
+
   
 
 

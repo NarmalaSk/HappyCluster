@@ -1,33 +1,55 @@
-name: Python workflow
+name: Python Quality PR Check
 
 on:
   pull_request:
     branches:
       - main
+      - develop
 
-jobs:
-  test-helloworld:
+jobs:     
+  Quality-Checks-Python:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') || github.head_ref == 'dev' || github.head_ref == 'staging' }}
     env:
       PYTHONPATH: .
     defaults:
       run:
-        working-directory: python  
+        working-directory: python
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        
+      - name: Check PR branch
+        id: check
+        run: |
+          if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|hotfix|bugfix)/ ]]; then
+            echo "Branch ${GITHUB_HEAD_REF} is not allowed. Failing pipeline."
+            exit 1
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
-      - name: Install Python tools & dependencies
-        run: pip install ruff black mypy pytest
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
 
-      - name: Run code lints
-        run: ruff check .
 
+      - name: Run Lints and Code formatting
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check .
+          src: .
+
+     
       - name: Running unit test cases
-        run: pytest
+        run: python -m unittest 
+
+      - name: Code Coverage reports
+        run: |
+            coverage run -m unittest discover -s python -p "*_test.py"
+            coverage report -m
+            coverage xml
+
+      - name: Build and Compile Code
+        run: python -m compileall .
