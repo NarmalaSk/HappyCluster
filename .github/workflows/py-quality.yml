@@ -1,4 +1,4 @@
-name: Python Quality Pr Check
+name: Python Quality PR Check
 
 on:
   pull_request:
@@ -9,12 +9,12 @@ on:
 jobs:
   Quality-Checks-Python:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/')
+    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') }}
     env:
       PYTHONPATH: .
     defaults:
       run:
-        working-directory: python  
+        working-directory: python
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,12 +24,14 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python tools & dependencies
-        run: pip install ruff black mypy pytest
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt black mypy pytest
 
-      - name: Run code lints
-        run: ruff check .
+      - name: Run Ruff (lint)
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check .
+          src: .
 
       - name: Running unit test cases
         run: python -m unittest
-
