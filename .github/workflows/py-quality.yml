@@ -9,8 +9,6 @@ on:
 jobs:     
   Quality-Checks-Python:
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') }}
-    continue-on-error: false
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
     env:
