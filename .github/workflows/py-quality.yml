@@ -15,7 +15,9 @@ jobs:
       run:
         working-directory: python
     steps:
-
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
       - name: Check PR branch
         id: check
         run: |
@@ -23,10 +25,6 @@ jobs:
             echo "Branch ${GITHUB_HEAD_REF} is not allowed. Failing pipeline."
             exit 1
           fi
-
-      - name: Checkout code
-        uses: actions/checkout@v4
-
 
       - name: Set up Python
         uses: actions/setup-python@v6
