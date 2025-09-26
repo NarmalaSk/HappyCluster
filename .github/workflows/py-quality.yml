@@ -9,25 +9,24 @@ on:
 jobs:     
   Quality-Checks-Python:
     runs-on: ubuntu-latest
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
     env:
       PYTHONPATH: .
     defaults:
       run:
         working-directory: python
     steps:
+
       - name: Check PR branch
         id: check
         run: |
           if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|hotfix|bugfix)/ ]]; then
-            echo "Branch ${GITHUB_HEAD_REF} is not allowed."
+            echo "Branch ${GITHUB_HEAD_REF} is not allowed. Failing pipeline."
             exit 1
           fi
-          echo "allowed=true" >> $GITHUB_OUTPUT
-          
+
       - name: Checkout code
         uses: actions/checkout@v4
+
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -36,6 +35,7 @@ jobs:
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
+
 
       - name: Run Ruff (lint)
         uses: astral-sh/ruff-action@v3.5.1
@@ -46,5 +46,6 @@ jobs:
       - name: Running unit test cases
         run: python -m unittest
 
+      # Step 7: Compile code
       - name: Build and Compile Code
         run: python -m compileall .
