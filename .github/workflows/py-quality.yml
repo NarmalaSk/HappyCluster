@@ -6,11 +6,18 @@ on:
       - main
       - develop
 
-jobs:
-  Branch-Validation:
+jobs:     
+  Quality-Checks-Python:
     runs-on: ubuntu-latest
+    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') }}
+    continue-on-error: false
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
+    env:
+      PYTHONPATH: .
+    defaults:
+      run:
+        working-directory: python
     steps:
       - name: Check PR branch
         id: check
@@ -21,16 +28,6 @@ jobs:
           fi
           echo "allowed=true" >> $GITHUB_OUTPUT
           
-  Quality-Checks-Python:
-    runs-on: ubuntu-latest
-    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') }}
-    continue-on-error: false
-    env:
-      PYTHONPATH: .
-    defaults:
-      run:
-        working-directory: python
-    steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
