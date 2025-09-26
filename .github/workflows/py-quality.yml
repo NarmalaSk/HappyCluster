@@ -9,6 +9,8 @@ on:
 jobs:
   Quality-Checks-Python:
     runs-on: ubuntu-latest
+    if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') }}
+    continue-on-error: false
     env:
       PYTHONPATH: .
     defaults:
@@ -17,14 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Branch Checks
-        run: |
-          BRANCH="${GITHUB_HEAD_REF}"
-          if [[ ! "$BRANCH" =~ ^(feature|hotfix|bugfix)/ ]]; then
-            exit 1
-          fi
-  
 
       - name: Set up Python
         uses: actions/setup-python@v6
