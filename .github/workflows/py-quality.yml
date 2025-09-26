@@ -31,4 +31,5 @@ jobs:
         run: ruff check .
 
       - name: Running unit test cases
-        run: pytest
+        run: python -m unittest
+
