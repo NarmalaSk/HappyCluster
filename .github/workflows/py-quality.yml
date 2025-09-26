@@ -7,6 +7,20 @@ on:
       - develop
 
 jobs:
+  Branch-Validation:
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Check PR branch
+        id: check
+        run: |
+          if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|hotfix|bugfix)/ ]]; then
+            echo "Branch ${GITHUB_HEAD_REF} is not allowed."
+            exit 1
+          fi
+          echo "allowed=true" >> $GITHUB_OUTPUT
+          
   Quality-Checks-Python:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/') }}
