@@ -35,3 +35,6 @@ jobs:
 
       - name: Running unit test cases
         run: python -m unittest
+
+      - name: Build and Compile Code
+        run: python -m compileall .
