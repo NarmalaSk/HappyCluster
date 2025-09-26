@@ -1,4 +1,4 @@
-name: Python workflow
+name: Python Quality Pr Check
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - develop
 
 jobs:
-  test-helloworld:
+  Quality-Checks-Python:
     runs-on: ubuntu-latest
     if: ${{ startsWith(github.head_ref, 'feature/') || startsWith(github.head_ref, 'hotfix/') || startsWith(github.head_ref, 'bugfix/')
     env:
