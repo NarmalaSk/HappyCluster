@@ -42,12 +42,11 @@ jobs:
           src: .
 
      
-      - name: Running unit test cases and Code Coverage
+      - name: Running unit test cases and Code Coverage Report
         run: |
              python -m unittest 
              coverage run -m unittest
              coverage report -m
-
 
 
       - name: Build and Compile Code
