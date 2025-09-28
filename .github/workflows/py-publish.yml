@@ -1,4 +1,4 @@
-name: Publish to DEV Environment
+name: Build and Publish Dev Snapshot
 
 on:
   push:
