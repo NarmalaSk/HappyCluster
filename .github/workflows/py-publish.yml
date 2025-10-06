@@ -3,30 +3,38 @@ name: Build and Publish Dev Snapshot
 on:
   push:
     branches:
-      - Develop
+      - develop
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Semantic version (e.g. 1.2.0)'
+      env:
+        description: 'Environment (dev | uat | prod)'
         required: true
-        default: '1.0.0'
+        default: 'dev'
+      version:
+        description: 'Semantic version (used for uat/prod, e.g. 1.2.0)'
+        required: false
+        default: ''
+      branch:
+        description: 'Branch name (for uat/prod deployments)'
+        required: false
+        default: ''
 
 env:
   DOCKER_REGISTRY: ${{ secrets.ACR_REGISTRY }}
-  IMAGE_NAME: ${{ secrets.USR_Image }}
-  APP_NAME: Sampleapp
+  IMAGE_NAME: ${{ secrets.USR_IMAGE }}
+  APP_NAME: Sampleappa
 
 jobs:
   build-and-publish:
-    name: Build and Push SNAPSHOT docker Image
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: python
+
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -40,12 +48,12 @@ jobs:
         with:
           args: check .
           src: .
-      
+
       - name: Build and Compile Code
         run: python -m compileall .
 
-      - name: Running unit test cases
-        run: python -m unittest 
+      - name: Run Unit Tests
+        run: python -m unittest
 
       - name: Build Python package
         run: python -m build
@@ -56,27 +64,35 @@ jobs:
         with:
           length: 7
 
-#   - name: Log in to ACR
-#     uses: docker/login-action@v3
-#     with:
-#       registry: ${{ env.DOCKER_REGISTRY }}
-#       username: ${{ secrets.ACR_USERNAME }}
-#       password: ${{ secrets.ACR_PASSWORD }}
+      - name: Determine version and branch
+        id: versioning
+        run: |
+          if [ "${{ github.event.inputs.env }}" == "dev" ]; then
+            echo "env=dev" >> $GITHUB_ENV
+            echo "VERSION=1.0-SNAPSHOT" >> $GITHUB_ENV
+            echo "BRANCH=develop" >> $GITHUB_ENV
+          else
+            echo "env=${{ github.event.inputs.env }}" >> $GITHUB_ENV
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+            echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+          fi
 
-#   - name: Set build variables
-#     run: |
-#       VERSION="${{ github.event.inputs.version || '1.0.0' }}"
-#       SHORT_SHA="${{ steps.short-sha.outputs.sha }}"
-#       IMAGE_TAG="${VERSION}-snapshot-${SHORT_SHA}"
-#       echo "VERSION=$VERSION" >> $GITHUB_ENV
-#       echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
-#       echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "Resolved version: $VERSION"
+          echo "Target branch: $BRANCH"
 
-#   - name: Build and push Docker image
-#     run: |
-#       echo "Building and pushing image: $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG"
-#       docker build -t $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG \
-#                    -t $DOCKER_REGISTRY/$IMAGE_NAME:dev-snapshot .
-#       docker push $DOCKER_REGISTRY/$IMAGE_NAME:$IMAGE_TAG
-#       docker push $DOCKER_REGISTRY/$IMAGE_NAME:dev-snapshot
+      - name: Log in to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} .
+          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+
+      - name: Confirm Publish
+        run: |
+          echo "Docker image pushed:"
+          echo "${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
