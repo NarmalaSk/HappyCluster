@@ -3,11 +3,12 @@ name: Python Quality PR Check
 on:
   pull_request:
     branches:
-      - main
       - develop
+      - main
 
-jobs:     
-  Quality-Checks-Python:
+jobs:
+  Build-develop:
+    if: github.base_ref == 'develop'
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: .
@@ -17,12 +18,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Check PR branch
-        id: check
+
+      - name: Validate PR branch name
         run: |
-          if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|hotfix|bugfix)/ ]]; then
-            echo "Branch ${GITHUB_HEAD_REF} is not allowed. Failing pipeline."
+          if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|bugfix)/ ]]; then
+            echo "Invalid branch name: ${GITHUB_HEAD_REF}"
             exit 1
           fi
 
@@ -31,9 +31,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: pip install -r requirements.txt
-
 
       - name: Run Lints and Code formatting
         uses: astral-sh/ruff-action@v3.5.1
@@ -41,13 +40,48 @@ jobs:
           args: check .
           src: .
 
-     
-      - name: Running unit test cases and Code Coverage Report
+      - name: Run Unit Tests and Coverage
         run: |
-             python -m unittest 
-             coverage run -m unittest
-             coverage report -m
+          python -m unittest 
+          coverage run -m unittest
+          coverage report -m
 
+      - name: Compile Code
+        run: python -m compileall .
 
-      - name: Build and Compile Code
+  Build-Main:
+    if: github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate PR branch name
+        run: |
+          if [[ ! "${GITHUB_HEAD_REF}" =~ ^(release|hotfix)/ ]]; then
+            echo "Invalid branch name: ${GITHUB_HEAD_REF}. "
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Lints and Code formatting
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check .
+          src: .
+
+      - name: Run Unit Tests and Coverage
+        run: |
+          python -m unittest 
+          coverage run -m unittest
+          coverage report -m
+
+      - name: Compile Code
         run: python -m compileall .
