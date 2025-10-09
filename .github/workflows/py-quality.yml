@@ -9,7 +9,9 @@ on:
 jobs:
   Build:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ./python 
     steps:
       - name: checkout source code
         uses: actions/checkout@v4
@@ -32,8 +34,30 @@ jobs:
             fi
 
           else
-            echo "Follow PR rules: target must be main or develop."
+            echo "Follow Pr Conventions"
             exit 1
           fi
 
           echo "Valid PR: ${GITHUB_HEAD_REF} → ${GITHUB_BASE_REF}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Lints and Code formatting
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check .
+
+      - name: Run Unit Tests and Coverage
+        run: |
+          python -m unittest
+          coverage run -m unittest
+          coverage report -m
+
+      - name: Compile Code
+        run: python -m compileall .
