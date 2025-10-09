@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./python  # your Python project folder
+        working-directory: ./python 
 
     steps:
       - name: Checkout source code
@@ -57,15 +57,10 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Format code with Black
-        run: |
-          pip install black
-          black --check .
-
-      - name: Run Lints and Code formatting
+      - name: Run Ruff Lints and Autoformat Check
         uses: astral-sh/ruff-action@v3.5.1
         with:
-          args: check .
+          args: check . --fix 
 
       - name: Run Unit Tests and Coverage
         run: |
