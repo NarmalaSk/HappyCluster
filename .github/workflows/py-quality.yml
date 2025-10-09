@@ -11,9 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./python 
+        working-directory: ./python  # your Python project folder
+
     steps:
-      - name: checkout source code
+      - name: Checkout source code
         uses: actions/checkout@v4
 
       - name: Validate Branch Constraints
@@ -34,7 +35,7 @@ jobs:
             fi
 
           else
-            echo "Follow Pr Conventions"
+            echo "Follow PR Conventions"
             exit 1
           fi
 
@@ -45,19 +46,31 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: Format code with Black
+        run: |
+          pip install black
+          black --check .
 
       - name: Run Lints and Code formatting
         uses: astral-sh/ruff-action@v3.5.1
         with:
           args: check .
-          
+
       - name: Run Unit Tests and Coverage
         run: |
-           coverage run -m unittest
-           coverage report -m --fail-under=80
-
+          coverage run -m unittest
+          coverage report -m --fail-under=80
 
       - name: Compile Code
         run: python -m compileall .
