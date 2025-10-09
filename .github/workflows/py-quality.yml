@@ -52,12 +52,12 @@ jobs:
         uses: astral-sh/ruff-action@v3.5.1
         with:
           args: check .
-
+          
       - name: Run Unit Tests and Coverage
         run: |
-          python -m unittest
-          coverage run -m unittest
-          coverage report -m
+           coverage run -m unittest
+           coverage report -m --fail-under=80
+
 
       - name: Compile Code
         run: python -m compileall .
