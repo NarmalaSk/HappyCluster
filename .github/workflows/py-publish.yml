@@ -1,98 +1,35 @@
-name: Build and Publish Dev Snapshot
+name: py-publish
 
 on:
-  push:
+  pull_request:
     branches:
+      - main
       - develop
+      - release
+
   workflow_dispatch:
     inputs:
       env:
-        description: 'Environment (dev | uat | prod)'
+        description: "Select environment"
         required: true
-        default: 'dev'
-      version:
-        description: 'Semantic version (used for uat/prod, e.g. 1.2.0)'
-        required: false
-        default: ''
-      branch:
-        description: 'Branch name (for uat/prod deployments)'
-        required: false
-        default: ''
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - uat
+          - prod
 
-env:
-  DOCKER_REGISTRY: ${{ secrets.ACR_REGISTRY }}
-  IMAGE_NAME: ${{ secrets.USR_IMAGE }}
-  APP_NAME: Sampleappa
 
 jobs:
-  build-and-publish:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
+  Deploy-To-Dev:
+      if: ${{ github.event.inputs.env == 'dev' }}
+      runs-on: ubuntu-latest
+      
+      steps:
+         - name: Checkout source code
+           uses: actions/checkout@v4
+               
+      
 
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
 
-      - name: Install Python dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run Lints and Code formatting
-        uses: astral-sh/ruff-action@v3.5.1
-        with:
-          args: check .
-          src: .
-
-      - name: Build and Compile Code
-        run: python -m compileall .
-
-      - name: Run Unit Tests
-        run: python -m unittest
-
-      - name: Build Python package
-        run: python -m build
-
-      - name: Generate short SHA
-        uses: benjlevesque/short-sha@v3.0
-        id: short-sha
-        with:
-          length: 7
-
-      - name: Determine version and branch
-        id: versioning
-        run: |
-          if [ "${{ github.event.inputs.env }}" == "dev" ]; then
-            echo "env=dev" >> $GITHUB_ENV
-            echo "VERSION=1.0-SNAPSHOT" >> $GITHUB_ENV
-            echo "BRANCH=develop" >> $GITHUB_ENV
-          else
-            echo "env=${{ github.event.inputs.env }}" >> $GITHUB_ENV
-            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-            echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
-          fi
-
-          echo "Resolved version: $VERSION"
-          echo "Target branch: $BRANCH"
-
-      - name: Log in to Azure Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ secrets.ACR_USERNAME }}
-          password: ${{ secrets.ACR_PASSWORD }}
-
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }} .
-          docker push ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}
-
-      - name: Confirm Publish
-        run: |
-          echo "Docker image pushed:"
-          echo "${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
