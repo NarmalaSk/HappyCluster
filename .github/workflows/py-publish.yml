@@ -112,7 +112,7 @@ jobs:
           IMAGE_FULL_NAME="${IMAGE_NAME}_${ENV_TAG}_snapshot_${IMAGE_VERSION}"
           docker tag $IMAGE_FULL_NAME $AZURE_ACR.azurecr.io/$IMAGE_FULL_NAME
 
-      - name: Push Docker Image to ACR (Override Same Tag)
+      - name: Push Docker Image to ACR
         run: |
           IMAGE_FULL_NAME="${IMAGE_NAME}_${ENV_TAG}_snapshot_${IMAGE_VERSION}"
           echo "Pushing image: $AZURE_ACR.azurecr.io/$IMAGE_FULL_NAME"
