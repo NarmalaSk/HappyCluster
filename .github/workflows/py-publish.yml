@@ -61,7 +61,7 @@ jobs:
         run: python -m compileall .
 
   Publish:
-    name: Publish Docker Image to ACR
+    name: Publish
     needs: Build
     runs-on: ubuntu-latest
     defaults:
@@ -103,6 +103,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
+          ls
           IMAGE_FULL_NAME="${IMAGE_NAME}_${ENV_TAG}_snapshot_${IMAGE_VERSION}"
           docker build -t $IMAGE_FULL_NAME .
 
