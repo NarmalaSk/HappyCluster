@@ -1,0 +1,61 @@
+name: Release Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      Version:
+        description: "Enter Release Version"
+        required: true
+        default: "1.0.0"
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./python
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Release Branch
+        run: |
+          echo "Current ref: $GITHUB_REF"
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          
+          if [[ "$BRANCH_NAME" == release/* ]]; then
+            echo "Valid release branch: $BRANCH_NAME"
+          else
+            echo "This workflow can only run on release/* branches."
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Ruff Lints and Autoformat Check
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check . --fix 
+
+      - name: Run Unit Tests and Coverage
+        run: |
+          coverage run -m unittest
+          coverage report -m --fail-under=80
+
+      - name: Compile Code
+        run: python -m compileall .
