@@ -18,7 +18,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
+        
+      - name: Trigger Run Audits
+        run: |
+          echo "Triggered by: $GITHUB_ACTOR"
+          echo "Branch: $GITHUB_REF"
+          echo "Input Version: ${{ github.event.inputs.Version }}"
+          echo "Image to be built: $IMAGE_NAME"
+          echo "Latest version in ACR: $VERSION"
+          
       - name: Validate Release Branch 
         run: | 
              BRANCH_NAME="${GITHUB_REF#refs/heads/}" 
@@ -109,13 +117,6 @@ jobs:
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
           echo "LATEST_VERSION=$VERSION" >> $GITHUB_ENV
 
-      - name: Log workflow inputs
-        run: |
-          echo "Triggered by: $GITHUB_ACTOR"
-          echo "Branch: $GITHUB_REF"
-          echo "Input Version: ${{ github.event.inputs.Version }}"
-          echo "Image to be built: $IMAGE_NAME"
-          echo "Latest version in ACR: $VERSION"
 
       - name: Build Docker Image
         run: docker buildx build --load -t $IMAGE_NAME .
