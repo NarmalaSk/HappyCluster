@@ -105,7 +105,9 @@ jobs:
           IMAGE_NAME="python_service_${INPUT_VERSION}"
 
       - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME .
+        run: |
+              docker buildx build --load -t $IMAGE_NAME .
+
 
       - name: Tag Docker Image for ACR
         run: docker tag $IMAGE_NAME ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME
