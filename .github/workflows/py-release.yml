@@ -24,8 +24,7 @@ jobs:
           echo "Triggered by: $GITHUB_ACTOR"
           echo "Branch: $GITHUB_REF"
           echo "Input Version: ${{ github.event.inputs.Version }}"
-          echo "Image to be built: $IMAGE_NAME"
-          echo "Latest version in ACR: $VERSION"
+
           
       - name: Validate Release Branch 
         run: | 
