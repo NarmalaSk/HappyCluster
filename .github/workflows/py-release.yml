@@ -71,7 +71,10 @@ jobs:
 
       - name: Install Azure CLI
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
-
+        
+      - name: Install jq
+        run: sudo apt install jq -y
+        
       - name: Login to Azure via CLI
         run: |
           az login --service-principal \
