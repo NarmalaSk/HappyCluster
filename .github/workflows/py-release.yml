@@ -21,13 +21,8 @@ jobs:
 
       - name: Validate Release Branch
         run: |
-          echo "Current ref: $GITHUB_REF"
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          
-          if [[ "$BRANCH_NAME" == release/* ]]; then
-            echo "Valid release branch: $BRANCH_NAME"
-          else
-            echo "This workflow can only run on release/* branches."
+          if [[ "$BRANCH_NAME" != release/* ]]; then
             exit 1
           fi
 
@@ -76,7 +71,10 @@ jobs:
 
       - name: Install Azure CLI
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
-
+        
+      - name: Install jq
+        run: sudo apt install jq -y
+        
       - name: Login to Azure via CLI
         run: |
           az login --service-principal \
@@ -91,42 +89,28 @@ jobs:
           username: ${{ secrets.AZURE_CLIENT_ID }}
           password: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      - name: Extract Latest Image Version
+      - name: Extract Latest Repository and Image Version
         id: version_check
         run: |
-          IMAGE_NAME="your-image-name" # Replace with actual image name
+          FIRST=$(az acr repository list -n acrtravshared -o json | jq -r '.[0]')
+          if [[ $FIRST =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          else
+            VERSION="none"
+          fi
           INPUT_VERSION="${{ github.event.inputs.Version }}"
-          ACR_NAME="${{ secrets.AZURE_ACR }}"
-
-          echo "Fetching latest image tag from ACR..."
-          LATEST_TAG=$(az acr repository show-tags \
-            --name $ACR_NAME \
-            --repository $IMAGE_NAME \
-            --orderby time_desc \
-            --top 1 \
-            --output tsv || echo "none")
-
-          echo "Latest version in ACR: $LATEST_TAG"
-          echo "Input version: $INPUT_VERSION"
-
-          if [[ "$LATEST_TAG" == "$INPUT_VERSION" ]]; then
-            echo "Error: Version $INPUT_VERSION already exists in ACR."
+          if [[ "$VERSION" == "$INPUT_VERSION" ]]; then
             exit 1
           fi
-
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          IMAGE_NAME="python_service_${INPUT_VERSION}"
 
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE_NAME:${{ github.event.inputs.Version }} .
+              docker buildx build --load -t $IMAGE_NAME .
+
 
       - name: Tag Docker Image for ACR
-        run: |
-          docker tag $IMAGE_NAME:${{ github.event.inputs.Version }} \
-            ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME:${{ github.event.inputs.Version }}
+        run: docker tag $IMAGE_NAME ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME
 
       - name: Push Docker Image to ACR
-        run: |
-          echo "Pushing new image version: ${{ github.event.inputs.Version }}"
-          docker push ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME:${{ github.event.inputs.Version }}
+        run: docker push ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME
