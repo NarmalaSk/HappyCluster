@@ -98,11 +98,7 @@ jobs:
           INPUT_VERSION="${{ github.event.inputs.Version }}"
 
           # Get the latest repository by last update time
-          LATEST_REPO=$(az acr repository list \
-            --name $ACR_NAME \
-            --orderby time_desc \
-            --top 1 \
-            --output tsv)
+          LATEST_REPO=$(az acr repository list -n $ACR_NAME)
 
           if [[ -z "$LATEST_REPO" ]]; then
             echo "No repositories found in ACR. Using input for image base."
