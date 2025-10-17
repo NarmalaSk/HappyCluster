@@ -94,39 +94,45 @@ jobs:
       - name: Extract Latest Image Version
         id: version_check
         run: |
-          IMAGE_NAME="your-image-name" # Replace with actual image name
+          IMAGE_BASE="python_service"
           INPUT_VERSION="${{ github.event.inputs.Version }}"
           ACR_NAME="${{ secrets.AZURE_ACR }}"
 
           echo "Fetching latest image tag from ACR..."
           LATEST_TAG=$(az acr repository show-tags \
             --name $ACR_NAME \
-            --repository $IMAGE_NAME \
+            --repository $IMAGE_BASE \
             --orderby time_desc \
             --top 1 \
             --output tsv || echo "none")
 
-          echo "Latest version in ACR: $LATEST_TAG"
+          echo "Latest tag in ACR: $LATEST_TAG"
           echo "Input version: $INPUT_VERSION"
 
-          if [[ "$LATEST_TAG" == "$INPUT_VERSION" ]]; then
+          IMAGE_NAME="${IMAGE_BASE}_${INPUT_VERSION}"
+
+          if [[ "$LATEST_TAG" == "$INPUT_VERSION" || "$LATEST_TAG" == "$IMAGE_NAME" ]]; then
             echo "Error: Version $INPUT_VERSION already exists in ACR."
             exit 1
           fi
 
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+          echo "IMAGE_BASE=$IMAGE_BASE" >> $GITHUB_ENV
+          echo "Proceeding to build new image: $IMAGE_NAME"
 
       - name: Build Docker Image
         run: |
-          docker build -t $IMAGE_NAME:${{ github.event.inputs.Version }} .
+          docker build -t $IMAGE_NAME .
 
       - name: Tag Docker Image for ACR
         run: |
-          docker tag $IMAGE_NAME:${{ github.event.inputs.Version }} \
-            ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME:${{ github.event.inputs.Version }}
+          FULL_TAG="${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME"
+          echo "Tagging image as: $FULL_TAG"
+          docker tag $IMAGE_NAME $FULL_TAG
 
       - name: Push Docker Image to ACR
         run: |
-          echo "Pushing new image version: ${{ github.event.inputs.Version }}"
-          docker push ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME:${{ github.event.inputs.Version }}
+          FULL_TAG="${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME"
+          echo "Pushing new image: $FULL_TAG"
+          docker push $FULL_TAG
