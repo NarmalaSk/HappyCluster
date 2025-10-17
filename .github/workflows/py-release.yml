@@ -19,15 +19,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate Release Branch
-        run: |
-          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          if [[ "$BRANCH_NAME" != release/* ]]; then
-            exit 1
-          fi
-          echo "Branch: $BRANCH_NAME" >> $GITHUB_ENV
-          echo "Triggered by: $GITHUB_ACTOR" >> $GITHUB_ENV
-          echo "Input Version: ${{ github.event.inputs.Version }}" >> $GITHUB_ENV
+      - name: Validate Release Branch 
+        run: | 
+             BRANCH_NAME="${GITHUB_REF#refs/heads/}" 
+             if [[ "$BRANCH_NAME" != release/* ]]; then 
+               exit 1 
+             fi
 
       - name: Set up Python
         uses: actions/setup-python@v6
