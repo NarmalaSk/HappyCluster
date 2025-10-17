@@ -21,13 +21,8 @@ jobs:
 
       - name: Validate Release Branch
         run: |
-          echo "Current ref: $GITHUB_REF"
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
-          
-          if [[ "$BRANCH_NAME" == release/* ]]; then
-            echo "Valid release branch: $BRANCH_NAME"
-          else
-            echo "This workflow can only run on release/* branches."
+          if [[ "$BRANCH_NAME" != release/* ]]; then
             exit 1
           fi
 
@@ -94,56 +89,23 @@ jobs:
       - name: Extract Latest Repository and Image Version
         id: version_check
         run: |
-          ACR_NAME="${{ secrets.AZURE_ACR }}"
-          INPUT_VERSION="${{ github.event.inputs.Version }}"
-
-          # Get the latest repository by last update time
-          LATEST_REPO=$(az acr repository list -n $ACR_NAME)
-
-          if [[ -z "$LATEST_REPO" ]]; then
-            echo "No repositories found in ACR. Using input for image base."
-            IMAGE_BASE="python_service"
+          FIRST=$(az acr repository list -n acrtravshared -o json | jq -r '.[0]')
+          if [[ $FIRST =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+            VERSION="${BASH_REMATCH[1]}"
           else
-            IMAGE_BASE="$LATEST_REPO"
+            VERSION="none"
           fi
-
-          # Get the latest tag for that repository
-          LATEST_TAG=$(az acr repository show-tags \
-            --name $ACR_NAME \
-            --repository $IMAGE_BASE \
-            --orderby time_desc \
-            --top 1 \
-            --output tsv || echo "none")
-
-          echo "Latest repository: $IMAGE_BASE"
-          echo "Latest tag: $LATEST_TAG"
-          echo "Input version: $INPUT_VERSION"
-
-          IMAGE_NAME="${IMAGE_BASE}_${INPUT_VERSION}"
-
-          if [[ "$LATEST_TAG" == "$INPUT_VERSION" || "$LATEST_TAG" == "$IMAGE_NAME" ]]; then
-            echo "Error: Version $INPUT_VERSION already exists in $IMAGE_BASE."
+          INPUT_VERSION="${{ github.event.inputs.Version }}"
+          if [[ "$VERSION" == "$INPUT_VERSION" ]]; then
             exit 1
           fi
-
-          echo "LATEST_REPO=$IMAGE_BASE" >> $GITHUB_ENV
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
-          echo "Proceeding to build new image: $IMAGE_NAME"
+          IMAGE_NAME="python_service_${INPUT_VERSION}"
 
       - name: Build Docker Image
-        run: |
-          docker build -t $IMAGE_NAME .
+        run: docker build -t $IMAGE_NAME .
 
       - name: Tag Docker Image for ACR
-        run: |
-          FULL_TAG="${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME"
-          echo "Tagging image as: $FULL_TAG"
-          docker tag $IMAGE_NAME $FULL_TAG
+        run: docker tag $IMAGE_NAME ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME
 
       - name: Push Docker Image to ACR
-        run: |
-          FULL_TAG="${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME"
-          echo "Pushing new image: $FULL_TAG"
-          docker push $FULL_TAG
-
+        run: docker push ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME
