@@ -91,14 +91,27 @@ jobs:
           username: ${{ secrets.AZURE_CLIENT_ID }}
           password: ${{ secrets.AZURE_CLIENT_SECRET }}
 
-      - name: Extract Latest Image Version
+      - name: Extract Latest Repository and Image Version
         id: version_check
         run: |
-          IMAGE_BASE="python_service"
-          INPUT_VERSION="${{ github.event.inputs.Version }}"
           ACR_NAME="${{ secrets.AZURE_ACR }}"
+          INPUT_VERSION="${{ github.event.inputs.Version }}"
 
-          echo "Fetching latest image tag from ACR..."
+          # Get the latest repository by last update time
+          LATEST_REPO=$(az acr repository list \
+            --name $ACR_NAME \
+            --orderby time_desc \
+            --top 1 \
+            --output tsv)
+
+          if [[ -z "$LATEST_REPO" ]]; then
+            echo "No repositories found in ACR. Using input for image base."
+            IMAGE_BASE="python_service"
+          else
+            IMAGE_BASE="$LATEST_REPO"
+          fi
+
+          # Get the latest tag for that repository
           LATEST_TAG=$(az acr repository show-tags \
             --name $ACR_NAME \
             --repository $IMAGE_BASE \
@@ -106,19 +119,20 @@ jobs:
             --top 1 \
             --output tsv || echo "none")
 
-          echo "Latest tag in ACR: $LATEST_TAG"
+          echo "Latest repository: $IMAGE_BASE"
+          echo "Latest tag: $LATEST_TAG"
           echo "Input version: $INPUT_VERSION"
 
           IMAGE_NAME="${IMAGE_BASE}_${INPUT_VERSION}"
 
           if [[ "$LATEST_TAG" == "$INPUT_VERSION" || "$LATEST_TAG" == "$IMAGE_NAME" ]]; then
-            echo "Error: Version $INPUT_VERSION already exists in ACR."
+            echo "Error: Version $INPUT_VERSION already exists in $IMAGE_BASE."
             exit 1
           fi
 
+          echo "LATEST_REPO=$IMAGE_BASE" >> $GITHUB_ENV
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
           echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
-          echo "IMAGE_BASE=$IMAGE_BASE" >> $GITHUB_ENV
           echo "Proceeding to build new image: $IMAGE_NAME"
 
       - name: Build Docker Image
@@ -136,3 +150,4 @@ jobs:
           FULL_TAG="${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME"
           echo "Pushing new image: $FULL_TAG"
           docker push $FULL_TAG
+
