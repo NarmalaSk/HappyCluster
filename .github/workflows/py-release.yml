@@ -45,7 +45,7 @@ jobs:
       - name: Run Ruff Lints and Autoformat Check
         uses: astral-sh/ruff-action@v3.5.1
         with:
-          args: check . --fix 
+          args: check . --fix
 
       - name: Run Unit Tests and Coverage
         run: |
@@ -66,15 +66,18 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Set up Docker 
+      - name: Set up QEMU for cross-platform builds
         uses: docker/setup-qemu-action@v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Install Azure CLI
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
-        
+
       - name: Install jq
-        run: sudo apt install jq -y
-        
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Login to Azure via CLI
         run: |
           az login --service-principal \
@@ -103,11 +106,10 @@ jobs:
             exit 1
           fi
           IMAGE_NAME="python_service_${INPUT_VERSION}"
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
 
       - name: Build Docker Image
-        run: |
-              docker build -t $IMAGE_NAME .
-
+        run: docker buildx build --load -t $IMAGE_NAME .
 
       - name: Tag Docker Image for ACR
         run: docker tag $IMAGE_NAME ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME
