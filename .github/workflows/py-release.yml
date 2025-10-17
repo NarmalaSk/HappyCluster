@@ -59,3 +59,73 @@ jobs:
 
       - name: Compile Code
         run: python -m compileall .
+
+  Release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./python
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install Azure CLI
+        uses: pietrobolcato/install-azure-cli-action@v1.0.1
+
+      - name: Login to Azure via CLI
+        run: |
+          az login --service-principal \
+            -u ${{ secrets.AZURE_CLIENT_ID }} \
+            -p ${{ secrets.AZURE_CLIENT_SECRET }} \
+            --tenant ${{ secrets.AZURE_TENANT_ID }}
+
+      - name: Azure Container Registry Login
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.AZURE_ACR }}.azurecr.io
+          username: ${{ secrets.AZURE_CLIENT_ID }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Extract Latest Image Version
+        id: version_check
+        run: |
+          IMAGE_NAME="your-image-name" # Replace with actual image name
+          INPUT_VERSION="${{ github.event.inputs.Version }}"
+          ACR_NAME="${{ secrets.AZURE_ACR }}"
+
+          echo "Fetching latest image tag from ACR..."
+          LATEST_TAG=$(az acr repository show-tags \
+            --name $ACR_NAME \
+            --repository $IMAGE_NAME \
+            --orderby time_desc \
+            --top 1 \
+            --output tsv || echo "none")
+
+          echo "Latest version in ACR: $LATEST_TAG"
+          echo "Input version: $INPUT_VERSION"
+
+          if [[ "$LATEST_TAG" == "$INPUT_VERSION" ]]; then
+            echo "Error: Version $INPUT_VERSION already exists in ACR."
+            exit 1
+          fi
+
+          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_ENV
+
+      - name: Build Docker Image
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.event.inputs.Version }} .
+
+      - name: Tag Docker Image for ACR
+        run: |
+          docker tag $IMAGE_NAME:${{ github.event.inputs.Version }} \
+            ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME:${{ github.event.inputs.Version }}
+
+      - name: Push Docker Image to ACR
+        run: |
+          echo "Pushing new image version: ${{ github.event.inputs.Version }}"
+          docker push ${{ secrets.AZURE_ACR }}.azurecr.io/$IMAGE_NAME:${{ github.event.inputs.Version }}
