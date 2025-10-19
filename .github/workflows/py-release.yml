@@ -131,7 +131,7 @@ jobs:
 
       - name: Tag Docker Image for ACR
         run: docker tag python_service:${{ github.event.inputs.Version }} \
-          ${{ secrets.AZURE_ACR }}.azurecr.io/python_service:${{ github.event.inputs.Version }}
+          acrtravshared.azurecr.io/python_service:${{ github.event.inputs.Version }}
 
       - name: Push Docker Image to ACR
         run: docker push ${{ secrets.AZURE_ACR }}.azurecr.io/python_service:${{ github.event.inputs.Version }}
