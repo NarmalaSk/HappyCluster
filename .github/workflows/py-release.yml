@@ -23,7 +23,7 @@ jobs:
         run: |
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
           if [[ "$BRANCH_NAME" != release/* ]]; then
-            echo "❌ This pipeline can only run from a release/* branch."
+            echo "This pipeline can only run from a release/* branch."
             exit 1
           fi
           echo "Branch: $BRANCH_NAME"
