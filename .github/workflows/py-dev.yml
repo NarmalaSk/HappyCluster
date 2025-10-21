@@ -23,9 +23,6 @@ jobs:
   Build:
     if: ${{ github.event.inputs.env == 'dev' }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./python
 
     steps:
       - name: Checkout source code
@@ -40,7 +37,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -64,9 +61,6 @@ jobs:
     name: Release
     needs: Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./python
 
     env:
       AZURE_ACR: ${{ secrets.AZURE_ACR }}             
