@@ -69,36 +69,61 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       SERVICE: ${{ secrets.SERVICE_NAME }}
-      INPUT_VERSION: ${{ github.event.inputs.version }}
+      INPUT_VERSION: ${{ github.event.inputs.Version }}
+    defaults:
+      run:
+        working-directory: ./python
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Install jq
         uses: dcarbone/install-jq-action@v3.2.0
-        
+
       - name: Install Azure CLI
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
 
       - name: Azure CLI Login
         run: |
-             az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+          az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
 
+      - name: Azure Container Registry Login
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.AZURE_ACR }}.azurecr.io
+          username: ${{ secrets.AZURE_CLIENT_ID }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET }}
 
       - name: Validate Tag Version and Input Version
+        id: validate_version
         run: |
           Latest_Version=$(az acr repository show-tags \
-                          -n $AZURE_ACR \
-                          --repository $SERVICE \
-                          --top 1 \
-                          --orderby time_desc \
-                          -o json | jq -r '.[0]')
+            -n $AZURE_ACR \
+            --repository $SERVICE \
+            --top 1 \
+            --orderby time_desc \
+            -o json | jq -r '.[0]')
 
+          echo "Latest tag in ACR: $Latest_Version"
+          echo "Input version: $INPUT_VERSION"
 
           if [[ "$Latest_Version" == "$INPUT_VERSION" ]]; then
-          echo "Error: The input version already exists in ACR!"
-          exit 1
+            echo "Error: The input version already exists in ACR!"
+            exit 1
           else
-             echo "Building Image"
+            echo "New version, proceeding to build."
           fi
+
+      - name: Build Docker Image
+        run: |
+          IMAGE_FULL_NAME="${AZURE_ACR}.azurecr.io/${SERVICE}:${INPUT_VERSION}"
+          echo "Building image: $IMAGE_FULL_NAME"
+          docker build -t $IMAGE_FULL_NAME .
+
+      - name: Push Docker Image to ACR
+        run: |
+          IMAGE_FULL_NAME="${AZURE_ACR}.azurecr.io/${SERVICE}:${INPUT_VERSION}"
+          echo "Pushing image: $IMAGE_FULL_NAME"
+          docker push $IMAGE_FULL_NAME
+
 
