@@ -92,7 +92,7 @@ jobs:
                           --repository $SERVICE \
                           --top 1 \
                           --orderby time_desc \
-                          -o json | jq -r '.[0]'
+                          -o json | jq -r '.[0]')
 
 
           if [[ "$Latest_Version" == "$INPUT_VERSION" ]]; then
