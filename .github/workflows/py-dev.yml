@@ -37,7 +37,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      AZURE_ACR: ${{ secrets.AZURE_ACR }}             
+      AZURE_ACR: ${{ secrets.AZURE_ACR }}
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -78,8 +78,22 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Install Azure CLI
-        uses: pietrobolcato/install-azure-cli-action@v1.0.1
+
+      - name: Cache Azure CLI
+        id: azure-cli-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.azure-cli
+          key: ${{ runner.os }}-azure-cli-v2.65.0
+
+      - name: Install Azure CLI if not cached
+        if: steps.azure-cli-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "Installing Azure CLI..."
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Verify Azure CLI
+        run: az version
 
       - name: Login to Azure via CLI
         run: |
