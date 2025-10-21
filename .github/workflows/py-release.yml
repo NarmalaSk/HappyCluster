@@ -11,9 +11,6 @@ on:
 jobs:
   Build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./python
 
     steps:
       - name: Checkout code
@@ -70,9 +67,7 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       SERVICE: ${{ secrets.SERVICE_NAME }}
       INPUT_VERSION: ${{ github.event.inputs.Version }}
-    defaults:
-      run:
-        working-directory: ./python
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
