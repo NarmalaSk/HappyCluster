@@ -40,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -103,17 +103,17 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          IMAGE_FULL_NAME="${IMAGE_NAME}"
+          IMAGE_FULL_NAME="${IMAGE_NAME}_${IMAGE_VERSION}-snapshot"
           echo "Building image: $IMAGE_FULL_NAME"
           docker build -t $IMAGE_FULL_NAME .
 
       - name: Tag Docker Image for ACR
         run: |
-          IMAGE_FULL_NAME="${IMAGE_NAME}"
+          IMAGE_FULL_NAME="${IMAGE_NAME}_${IMAGE_VERSION}-snapshot"
           docker tag $IMAGE_FULL_NAME $AZURE_ACR.azurecr.io/$IMAGE_FULL_NAME
 
       - name: Push Docker Image to ACR
         run: |
-          IMAGE_FULL_NAME="${IMAGE_NAME}"
+          IMAGE_FULL_NAME="${IMAGE_NAME}_${IMAGE_VERSION}-snapshot"
           echo "Pushing image: $AZURE_ACR.azurecr.io/$IMAGE_FULL_NAME"
           docker push $AZURE_ACR.azurecr.io/$IMAGE_FULL_NAME
