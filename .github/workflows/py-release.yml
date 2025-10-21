@@ -78,10 +78,12 @@ jobs:
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
 
       - name: Azure Cli Login 
-        run: |
-               az login --service-principal \
-               -u $AZURE_CLIENT_ID \
-               -p $AZURE_CLIENT_SECRET \
-               -t $AZURE_TENANT_ID
+        uses: Azure/login@v2.3.0
+        with: 
+          client-id: $AZURE_CLIENT_ID
+          Tenant-id: $AZURE_TENANT_ID
+          subscription-id: $AZURE_SUBSCRIPTION_ID
+
+      
 
       
