@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Install Azure Cli
-        uses: Azure/cli@v2.2.0
+        uses: pietrobolcato/install-azure-cli-action@v1.0.1
 
       - name: Azure Cli Login 
         run: |
