@@ -73,12 +73,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Debug directory
-        run: |
-          pwd
-          ls -R
-
+        
+      - name: Install jq
+        uses: dcarbone/install-jq-action@v3.2.0
+        
       - name: Install Azure CLI
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
 
@@ -89,12 +87,13 @@ jobs:
 
       - name: Validate Tag Version and Input Version
         run: |
-          Latest_Version=$(az acr manifest list-metadata \
-                 --registry "$AZURE_ACR" \
-                 --name "$SERVICE" \
-                 --orderby time_desc \
-                 --top 1 \
-                 --query "[0].tags[0]" -o tsv)
+          Latest_Version=$(az acr repository show-tags \
+                          -n acrtravshared \
+                          --repository python_service \
+                          --top 1 \
+                          --orderby time_desc \
+                          -o json | jq -r '.[0]'
+
 
           if [[ "$Latest_Version" == "$INPUT_VERSION" ]]; then
           echo "Error: The input version already exists in ACR!"
