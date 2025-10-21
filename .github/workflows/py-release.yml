@@ -83,4 +83,25 @@ jobs:
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
 
       - name: Azure CLI Login
-        run: az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+        run: |
+             az login --service-principal --username $AZURE_CLIENT_ID --password $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID
+
+
+      - name: Validate Tag Version and Input Version
+        run: |
+          Latest_Version=$(az acr manifest list-metadata \
+                 --registry "$AZURE_ACR" \
+                 --name "$SERVICE" \
+                 --orderby time_desc \
+                 --top 1 \
+                 --query "[0].tags[0]" -o tsv)
+
+    
+
+          if [[ "$Latest_Version" == "$INPUT_VERSION" ]]; then
+          echo "Error: The input version already exists in ACR!"
+          exit 1
+          else
+             echo "Version is new, continuing..."
+          fi
+
