@@ -62,76 +62,26 @@ jobs:
   Release:
     needs: Build
     runs-on: ubuntu-latest
+    env:
+       AZURE_ACR: ${{ secrets.AZURE_ACR }}
+       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+       SERVICE: ${{ secrets.SERVICE_NAME }}
     defaults:
       run:
         working-directory: ./python
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
+      - name: Install Azure Cli
+        uses: Azure/cli@v2.2.0
 
-      - name: Set up QEMU for cross-platform builds
-        uses: docker/setup-qemu-action@v3.6.0
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Install Azure CLI and jq
+      - name: Azure Cli Login 
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+               az login --service-principal \
+               -u $AZURE_CLIENT_ID \
+               -p $AZURE_CLIENT_SECRET \
+               -t $AZURE_TENANT_ID
 
-      - name: Login to Azure
-        run: |
-          az login --service-principal \
-            -u ${{ secrets.AZURE_CLIENT_ID }} \
-            -p ${{ secrets.AZURE_CLIENT_SECRET }} \
-            --tenant ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Azure Container Registry Login
-        uses: azure/docker-login@v2
-        with:
-          login-server: ${{ secrets.AZURE_ACR }}.azurecr.io
-          username: ${{ secrets.AZURE_CLIENT_ID }}
-          password: ${{ secrets.AZURE_CLIENT_SECRET }}
-
-      - name: Get Latest Tag from ACR
-        id: version_check
-        run: |
-          REPO_NAME="python_service"
-          echo "Fetching latest tag for $REPO_NAME..."
-
-          LATEST_TAG=$(az acr repository show-tags -n ${{ secrets.AZURE_ACR }} \
-            --repository $REPO_NAME --orderby time_desc --output tsv | head -n 1)
-
-          if [[ -z "$LATEST_TAG" ]]; then
-            LATEST_TAG="none"
-          fi
-
-          echo "Latest tag in ACR: $LATEST_TAG"
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-          echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
-
-          INPUT_VERSION="${{ github.event.inputs.Version }}"
-          if [[ "$INPUT_VERSION" == "$LATEST_TAG" ]]; then
-            echo "Version $INPUT_VERSION already exists in ACR. Aborting release."
-            exit 1
-          fi
-
-      - name: Log workflow inputs
-        run: |
-          echo "Triggered by: $GITHUB_ACTOR"
-          echo "Branch: $GITHUB_REF"
-          echo "Input Version: ${{ github.event.inputs.Version }}"
-          echo "Latest version in ACR: $LATEST_TAG"
-
-      - name: Build Docker Image
-        run: docker buildx build --load -t python_service:${{ github.event.inputs.Version }} .
-
-      - name: Tag Docker Image for ACR
-        run: docker tag python_service:${{ github.event.inputs.Version }} \
-          acrtravshared.azurecr.io/python_service:${{ github.event.inputs.Version }}
-
-      - name: Push Docker Image to ACR
-        run: docker push ${{ secrets.AZURE_ACR }}.azurecr.io/python_service:${{ github.event.inputs.Version }}
+      
