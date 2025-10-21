@@ -63,28 +63,28 @@ jobs:
     needs: Build
     runs-on: ubuntu-latest
     env:
-       AZURE_ACR: ${{ secrets.AZURE_ACR }}
-       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-       SERVICE: ${{ secrets.SERVICE_NAME }}
-    defaults:
-      run:
-        working-directory: ./python
+      AZURE_ACR: ${{ secrets.AZURE_ACR }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      SERVICE: ${{ secrets.SERVICE_NAME }}
 
     steps:
-      - name: Install Azure Cli
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug directory
+        run: |
+          pwd
+          ls -R
+
+      - name: Install Azure CLI
         uses: pietrobolcato/install-azure-cli-action@v1.0.1
 
       - name: Azure CLI Login
         uses: azure/login@v2.3.0
         with:
-            client-id: ${{ env.AZURE_CLIENT_ID }}
-            tenant-id: ${{ env.AZURE_TENANT_ID }}
-            subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
-
-
-      
-
-      
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
