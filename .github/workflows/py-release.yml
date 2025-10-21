@@ -88,8 +88,8 @@ jobs:
       - name: Validate Tag Version and Input Version
         run: |
           Latest_Version=$(az acr repository show-tags \
-                          -n acrtravshared \
-                          --repository python_service \
+                          -n $AZURE_ACR \
+                          --repository $SERVICE \
                           --top 1 \
                           --orderby time_desc \
                           -o json | jq -r '.[0]'
