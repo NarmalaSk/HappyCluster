@@ -1,0 +1,139 @@
+name: Release Pipeline Template
+
+on:
+  workflow_call:
+    inputs:
+      Version:
+        description: "Release Version (e.g., 1.0.1)"
+        required: true
+        type: string
+    secrets:
+      AZURE_ACR:
+        required: true
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_CLIENT_SECRET:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      SERVICE_NAME:
+        required: true
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate Release Branch
+        run: |
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [[ "$BRANCH_NAME" != release/* ]]; then
+            echo "This pipeline can only run from a release/* branch."
+            exit 1
+          fi
+          echo "Branch: $BRANCH_NAME"
+          echo "Triggered by: $GITHUB_ACTOR"
+          echo "Input Version: ${{ inputs.Version }}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Ruff Lints and Autoformat Check
+        uses: astral-sh/ruff-action@v3.5.1
+        with:
+          args: check . --fix
+
+      - name: Run Unit Tests and Coverage
+        run: |
+          coverage run -m unittest
+          coverage report -m --fail-under=80
+
+      - name: Compile Code
+        run: python -m compileall .
+
+  Release:
+    needs: Build
+    runs-on: ubuntu-latest
+
+    env:
+      AZURE_ACR: ${{ secrets.AZURE_ACR }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      SERVICE: ${{ secrets.SERVICE_NAME }}
+      INPUT_VERSION: ${{ inputs.Version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        uses: dcarbone/install-jq-action@v3.2.0
+
+      - name: Install Azure CLI
+        uses: pietrobolcato/install-azure-cli-action@v1.0.1
+
+      - name: Azure CLI Login
+        run: |
+          az login --service-principal \
+            --username $AZURE_CLIENT_ID \
+            --password $AZURE_CLIENT_SECRET \
+            --tenant $AZURE_TENANT_ID
+
+      - name: Azure Container Registry Login
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.AZURE_ACR }}.azurecr.io
+          username: ${{ secrets.AZURE_CLIENT_ID }}
+          password: ${{ secrets.AZURE_CLIENT_SECRET }}
+
+      - name: Validate Tag Version and Input Version
+        id: validate_version
+        run: |
+          Latest_Version=$(az acr repository show-tags \
+            -n $AZURE_ACR \
+            --repository $SERVICE \
+            --top 1 \
+            --orderby time_desc \
+            -o json | jq -r '.[0]')
+
+          echo "Latest tag in ACR: $Latest_Version"
+          echo "Input version: $INPUT_VERSION"
+
+          if [[ "$Latest_Version" == "$INPUT_VERSION" ]]; then
+            echo "Error: The input version already exists in ACR!"
+            exit 1
+          else
+            echo "New version, proceeding to build."
+          fi
+
+      - name: Build Docker Image
+        run: |
+          IMAGE_FULL_NAME="${AZURE_ACR}.azurecr.io/${SERVICE}:${INPUT_VERSION}"
+          echo "Building image: $IMAGE_FULL_NAME"
+          docker build -t $IMAGE_FULL_NAME .
+
+      - name: Push Docker Image to ACR
+        run: |
+          IMAGE_FULL_NAME="${AZURE_ACR}.azurecr.io/${SERVICE}:${INPUT_VERSION}"
+          echo "Pushing image: $IMAGE_FULL_NAME"
+          docker push $IMAGE_FULL_NAME
