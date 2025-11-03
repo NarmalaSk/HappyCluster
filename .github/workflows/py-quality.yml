@@ -1,4 +1,4 @@
-name: Python Quality PR Check
+name: python quality check
 
 on:
   pull_request:
@@ -6,54 +6,58 @@ on:
       - main
       - develop
 
-jobs:     
-  Quality-Checks-Python:
+jobs:
+  Build:
     runs-on: ubuntu-latest
-    env:
-      PYTHONPATH: .
     defaults:
       run:
-        working-directory: python
+        working-directory: ./python 
     steps:
-      - name: Checkout code
+      - name: checkout source code
         uses: actions/checkout@v4
-        
-      - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-      - name: Check PR branch
-        id: check
+
+      - name: Validate Branch Constraints
         run: |
-          if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|hotfix|bugfix)/ ]]; then
-            echo "Branch ${GITHUB_HEAD_REF} is not allowed. Failing pipeline."
+          echo "Source (head): ${GITHUB_HEAD_REF}"
+          echo "Target (base): ${GITHUB_BASE_REF}"
+
+          if [[ "${GITHUB_BASE_REF}" == "main" ]]; then
+            if [[ ! "${GITHUB_HEAD_REF}" =~ ^(release|hotfix)/ ]]; then
+              echo "Invalid: Only release/* or hotfix/* branches can target main."
+              exit 1
+            fi
+
+          elif [[ "${GITHUB_BASE_REF}" == "develop" ]]; then
+            if [[ ! "${GITHUB_HEAD_REF}" =~ ^(feature|bugfix)/ ]]; then
+              echo "Invalid: Only feature/* or bugfix/* branches can target develop."
+              exit 1
+            fi
+
+          else
+            echo "Follow Pr Conventions"
             exit 1
           fi
+
+          echo "Valid PR: ${GITHUB_HEAD_REF} → ${GITHUB_BASE_REF}"
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: pip install -r requirements.txt
-
 
       - name: Run Lints and Code formatting
         uses: astral-sh/ruff-action@v3.5.1
         with:
           args: check .
-          src: .
 
-     
-      - name: Running unit test cases and Code Coverage
+      - name: Run Unit Tests and Coverage
         run: |
-             python -m unittest 
-             coverage run -m unittest
-             coverage report -m
+          python -m unittest
+          coverage run -m unittest
+          coverage report -m
 
-
-
-      - name: Build and Compile Code
+      - name: Compile Code
         run: python -m compileall .
