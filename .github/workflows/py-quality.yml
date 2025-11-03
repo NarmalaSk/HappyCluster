@@ -13,7 +13,11 @@ jobs:
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
-
+        
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Validate Branch Constraints
         run: |
           echo "Source (head): ${GITHUB_HEAD_REF}"
